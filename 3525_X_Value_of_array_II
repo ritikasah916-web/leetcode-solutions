@@ -1,0 +1,177 @@
+from typing import List
+
+
+class SegTree:
+    def __init__(self, nums, k):
+        self.n = len(nums)
+        self.k = k
+
+        self.tree_product = [1] * (4 * self.n)
+        self.tree_remainder = [[0] * self.k for _ in range(4 * self.n)]
+
+        if self.n > 0:
+            self.build(0, 0, self.n - 1, nums)
+
+    def merge(self, left, right):
+        left_product, left_remainder = left
+        right_product, right_remainder = right
+
+        res = list(left_remainder)
+
+        for i in range(self.k):
+            curr_rem = (left_product * i) % self.k
+            res[curr_rem] += right_remainder[i]
+
+        product = (left_product * right_product) % self.k
+
+        return (product, res)
+
+    def build(self, node, l, r, nums):
+        if l == r:
+            val = nums[l] % self.k
+
+            self.tree_product[node] = val
+            self.tree_remainder[node][val] = 1
+
+            return (
+                self.tree_product[node],
+                self.tree_remainder[node]
+            )
+
+        mid = (l + r) // 2
+
+        left = self.build(
+            2 * node + 1,
+            l,
+            mid,
+            nums
+        )
+
+        right = self.build(
+            2 * node + 2,
+            mid + 1,
+            r,
+            nums
+        )
+
+        prod, rem = self.merge(left, right)
+
+        self.tree_product[node] = prod
+        self.tree_remainder[node] = rem
+
+        return (prod, rem)
+
+    def update(self, node, l, r, idx, val):
+        if l == r:
+            val = val % self.k
+
+            self.tree_product[node] = val
+            self.tree_remainder[node] = [0] * self.k
+            self.tree_remainder[node][val] = 1
+
+            return
+
+        mid = (l + r) // 2
+
+        if idx <= mid:
+            self.update(
+                2 * node + 1,
+                l,
+                mid,
+                idx,
+                val
+            )
+        else:
+            self.update(
+                2 * node + 2,
+                mid + 1,
+                r,
+                idx,
+                val
+            )
+
+        left = (
+            self.tree_product[2 * node + 1],
+            self.tree_remainder[2 * node + 1]
+        )
+
+        right = (
+            self.tree_product[2 * node + 2],
+            self.tree_remainder[2 * node + 2]
+        )
+
+        prod, rem = self.merge(left, right)
+
+        self.tree_product[node] = prod
+        self.tree_remainder[node] = rem
+
+    def query(self, node, l, r, start, end):
+        # Completely inside the query range
+        if start <= l and r <= end:
+            return (
+                self.tree_product[node],
+                self.tree_remainder[node]
+            )
+
+        # Completely outside the query range
+        if r < start or l > end:
+            return (1, [0] * self.k)
+
+        mid = (l + r) // 2
+
+        left = self.query(
+            2 * node + 1,
+            l,
+            mid,
+            start,
+            end
+        )
+
+        right = self.query(
+            2 * node + 2,
+            mid + 1,
+            r,
+            start,
+            end
+        )
+
+        return self.merge(left, right)
+
+
+class Solution:
+    def resultArray(
+        self,
+        nums: List[int],
+        k: int,
+        queries: List[List[int]]
+    ) -> List[int]:
+
+        n = len(nums)
+
+        seg = SegTree(nums, k)
+
+        res = []
+
+        for idx, val, start, x in queries:
+            # Update nums[idx]
+            seg.update(
+                0,
+                0,
+                n - 1,
+                idx,
+                val
+            )
+
+            # Query range [start, n - 1]
+            _, remainder = seg.query(
+                0,
+                0,
+                n - 1,
+                start,
+                n - 1
+            )
+
+            # Number of subarrays having product % k == x
+            res.append(remainder[x])
+
+        return res
