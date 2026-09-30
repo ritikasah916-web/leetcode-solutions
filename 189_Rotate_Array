@@ -1,0 +1,16 @@
+class Solution:
+    def rotate(self, nums: list[int], k: int) -> None:
+        """
+        Do not return anything, modify nums in-place instead.
+        """
+        n = len(nums)
+        k = k % n
+
+        # Reverse the whole array
+        nums.reverse()
+
+        # Reverse first k elements
+        nums[:k] = reversed(nums[:k])
+
+        # Reverse remaining elements
+        nums[k:] = reversed(nums[k:])
